@@ -2,7 +2,7 @@
 # Runs the *IT integration tests (Testcontainers) against real Keycloak servers.
 # The main CI workflow only compiles and runs unit tests: maven-failsafe-plugin is not configured, so
 # surefire's default includes skip every *IT class. This workflow selects them explicitly.
-# 26.7.4 runs as a baseline so regressions on 26.8.1 can be told apart from pre-existing failures.
+# 26.7.4 runs as a baseline so regressions on 26.8.2 can be told apart from pre-existing failures.
 name: Integration tests
 
 on:
@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - KEYCLOAK_VERSION: 26.8.1
+          - KEYCLOAK_VERSION: 26.8.2
             KEYCLOAK_CLIENT_VERSION: 26.0.12
             SOURCE: this-branch
             REF: ''
@@ -35,7 +35,7 @@ jobs:
             REF: ''
           # Unmodified upstream main (adorsys/keycloak-config-cli 6f7f883) as a baseline,
           # to separate pre-existing failures from regressions introduced on this branch.
-          - KEYCLOAK_VERSION: 26.8.1
+          - KEYCLOAK_VERSION: 26.8.2
             KEYCLOAK_CLIENT_VERSION: 26.0.12
             SOURCE: upstream-main
             REF: 6f7f88301bd23bb4b168ad291f04531ddecb8879

@@ -1,0 +1,89 @@
+---
+# Trifork Cloud Stack (TCS) image build for this fork.
+#
+# The upstream release job in ci.yaml publishes to adorsys' Docker Hub and Quay
+# accounts on `v*` tags, which this fork cannot (and must not) do. This workflow
+# builds the image and publishes it to GHCR instead.
+#
+# - pull_request: build only, no push (smoke test of the Dockerfile).
+# - push of a `tcs-v*` tag: build and push
+#   ghcr.io/<owner>/keycloak-config-cli:<tag without "tcs-v">-<KEYCLOAK_VERSION>
+#   e.g. tag `tcs-v6.5.2-tcs.1` -> `6.5.2-tcs.1-26.8.2`.
+#   Do not use `v*` tags in this fork: they trigger the upstream release job.
+# - workflow_dispatch: build and push `sha-<short sha>-<KEYCLOAK_VERSION>`.
+#
+# Consumers must pin the published image by digest.
+name: TCS image
+
+on:
+  pull_request:
+  push:
+    tags:
+      - 'tcs-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Read Keycloak version
+        id: kc
+        run: echo "VERSION=$(grep '^KEYCLOAK_VERSION=' .env | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute image tag
+        id: tag
+        env:
+          KC_VERSION: ${{ steps.kc.outputs.VERSION }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [ "${REF_TYPE}" = "tag" ]; then
+            base="${REF_NAME#tcs-v}"
+          else
+            base="sha-${GITHUB_SHA::7}"
+          fi
+          echo "TAG=${base}-${KC_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.4.1
+
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            KEYCLOAK_VERSION=${{ steps.kc.outputs.VERSION }}
+          tags: ghcr.io/${{ github.repository_owner }}/keycloak-config-cli:${{ steps.tag.outputs.TAG }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.tag.outputs.TAG }}
+
+      - name: Summary
+        if: github.event_name != 'pull_request'
+        env:
+          TAG: ${{ steps.tag.outputs.TAG }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          echo "Pushed \`ghcr.io/${OWNER}/keycloak-config-cli:${TAG}@${DIGEST}\`" >> "$GITHUB_STEP_SUMMARY"
