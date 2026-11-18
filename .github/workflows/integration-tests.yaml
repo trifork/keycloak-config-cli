@@ -2,7 +2,7 @@
 # Runs the *IT integration tests (Testcontainers) against real Keycloak servers.
 # The main CI workflow only compiles and runs unit tests: maven-failsafe-plugin is not configured, so
 # surefire's default includes skip every *IT class. This workflow selects them explicitly.
-# 26.7.4 runs as a baseline so regressions on 26.8.1 can be told apart from pre-existing failures.
+# 26.7.4 runs as a baseline so regressions on 26.8.2 can be told apart from pre-existing failures.
 name: Integration tests
 
 on:
@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - KEYCLOAK_VERSION: 26.8.1
+          - KEYCLOAK_VERSION: 26.8.2
             KEYCLOAK_CLIENT_VERSION: 26.0.12
             SOURCE: this-branch
             REF: ''
@@ -35,7 +35,7 @@ jobs:
             REF: ''
           # Unmodified upstream main (adorsys/keycloak-config-cli 6f7f883) as a baseline,
           # to separate pre-existing failures from regressions introduced on this branch.
-          - KEYCLOAK_VERSION: 26.8.1
+          - KEYCLOAK_VERSION: 26.8.2
             KEYCLOAK_CLIENT_VERSION: 26.0.12
             SOURCE: upstream-main
             REF: 6f7f88301bd23bb4b168ad291f04531ddecb8879
@@ -45,17 +45,17 @@ jobs:
             REF: 6f7f88301bd23bb4b168ad291f04531ddecb8879
     name: integration-tests (${{ matrix.env.KEYCLOAK_VERSION }}, ${{ matrix.env.SOURCE }})
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ matrix.env.REF }}
 
       - name: Setup java
-        uses: actions/setup-java@v6.1.0
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
         with:
           distribution: 'temurin'
           java-version: 21
 
-      - uses: actions/cache@v6.1.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-it-${{ matrix.env.KEYCLOAK_VERSION }}-${{ hashFiles('**/pom.xml') }}
@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v7.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: it-reports-${{ matrix.env.KEYCLOAK_VERSION }}-${{ matrix.env.SOURCE }}
           path: target/surefire-reports/
