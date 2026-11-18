@@ -370,7 +370,8 @@ public class ClientImportService {
             }
 
             // FGAP V2: admin-permissions client may return 400 when server-managed. Swallow as defensive fallback.
-            if (status == 400 && ADMIN_PERMISSIONS_CLIENT_ID.equals(patchedClient.getClientId())) {
+            // Keycloak 26.8.2 rejects every PUT on it with 403 instead, like 'realm-management' below.
+            if ((status == 400 || status == 403) && ADMIN_PERMISSIONS_CLIENT_ID.equals(patchedClient.getClientId())) {
                 logger.debug("Skipping update for 'admin-permissions' client in realm '{}' - FGAP V2 manages this client internally", realmName);
                 return false;
             }
